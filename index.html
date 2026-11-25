@@ -235,7 +235,7 @@ let baseColor = new THREE.Color(MATS[0].base);   // в линейном прос
 S.paint = new THREE.Color(S.paintHex);
 
 function shapePositions(shape) {
-  let g = new THREE.IcosahedronGeometry(1, 5);
+  let g = new THREE.IcosahedronGeometry(1, 31);   // в three r125+ detail = число делений ребра − 1: 31 → 32 деления → 10 242 вершины (detail 5 давал лишь 362)
   g.deleteAttribute('normal'); g.deleteAttribute('uv');
   g = mergeVertices(g);
   const p = g.attributes.position.array;
@@ -960,7 +960,7 @@ function subdivide() {
   g.setIndex(new THREE.Uint32BufferAttribute(F, 1));
   g.computeVertexNormals();
   setGeometry(g);
-  toast(`Детализация: ${(P.length / 3).toLocaleString('ru-RU')} вершин · отмена очищена`);
+  toast(`Детализация: ${(P.length / 3).toLocaleString('ru-RU')} вершин · отмена очищена · лепка может замедлиться`);
 }
 function download(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); }
 const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
