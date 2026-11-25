@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Лепка руками</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #14161a;
+    --panel: rgba(20, 22, 27, 0.80);
+    --line: rgba(255, 255, 255, 0.10);
+    --btn: rgba(255, 255, 255, 0.06);
+    --text: #e8e6e1;
+    --muted: #9a978f;
+    --accent: #ffb35c;
+    --ok: #7bd88f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+    font: 13px/1.35 system-ui, "Segoe UI", sans-serif; user-select: none; }
+  body.studio { background: radial-gradient(ellipse at 50% 40%, #2a2d33 0%, #14161a 70%); }
+
+  #video { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  body.studio #video { inset: auto; left: 50%; bottom: 16px; translate: -50% 0; width: 240px; height: 135px;
+    border-radius: 8px; border: 1px solid var(--line); opacity: 0.85; }
+  body.studio.hints #video { bottom: 108px; }
+  #gl, #overlay { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #overlay { pointer-events: none; z-index: 5; }
+
+  .panel { position: fixed; top: 16px; width: 252px; padding: 12px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(8px); }
+  #left { left: 16px; }
+  #right { right: 16px; }
+  .panel h1 { margin: 0; font-size: 14px; font-weight: 600; line-height: 20px; }
+  .panel h2 { margin: 12px 0 6px; font-size: 11px; font-weight: 600; line-height: 14px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .wide { grid-column: 1 / -1; }
+
+  button { --p: 0; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px 1.4px; font: inherit;
+    color: var(--text); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; text-align: left;
+    background: linear-gradient(90deg, rgba(255,179,92,0.38) calc(var(--p) * 100%), var(--btn) 0); }
+  button:hover { background-color: rgba(255,255,255,0.12); }
+  button.on { border-color: var(--accent); color: var(--accent); }
+  button kbd { position: relative; top: 0.7px; margin-left: auto; color: var(--muted); font: 11px/1 system-ui, "Segoe UI", sans-serif; }
+  button.hand-hover { border-color: rgba(255,179,92,0.7); }
+  .grid3 button { justify-content: center; padding: 0 4px 1.4px; }
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .swatches button { height: 32px; padding: 0; justify-content: center; border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.12); background: var(--c); }
+  .swatches button:hover { background: var(--c); filter: brightness(1.12); }
+  .swatches button.on { border-color: #ffffff; box-shadow: 0 0 0 1px #000 inset; }
+  .swatches button.hand-hover { border-color: rgba(255,255,255,0.7); }
+  .paintrow { display: grid; grid-template-columns: 1fr 1fr 36px; gap: 4px; margin-top: 4px; }
+  .paintrow button { justify-content: center; padding: 0 4px 1.4px; }
+  .custom { position: relative; height: 36px; border-radius: 6px; border: 1px solid var(--line); overflow: hidden; cursor: pointer; }
+  .custom input { position: absolute; inset: -6px; width: calc(100% + 12px); height: calc(100% + 12px); border: 0; padding: 0; cursor: pointer; }
+
+  .slider { --p: 0; margin-top: 4px; padding: 6px 8px; border-radius: 6px; border: 1px solid transparent;
+    background: linear-gradient(90deg, rgba(255,179,92,0.22) calc(var(--p) * 100%), transparent 0); }
+  .slider.hand-hover { border-color: rgba(255,179,92,0.5); }
+  .slider.captured { border-color: var(--accent); background: rgba(255,179,92,0.14); }
+  .label { display: flex; justify-content: space-between; color: var(--muted); line-height: 16px; }
+  .label b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+  input[type=range] { display: block; width: 100%; height: 22px; margin: 4px 0 0; accent-color: var(--accent); }
+
+  #status { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); line-height: 16px; }
+  #status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #666; margin-right: 6px; vertical-align: 1px; }
+  #status .dot.live { background: var(--ok); }
+
+  #hint { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; pointer-events: none;
+    grid-template-columns: repeat(2, auto); gap: 4px 20px; padding: 10px 16px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; line-height: 18px; }
+  body.hints #hint { display: grid; }
+  #hint b { color: var(--text); font-weight: 500; }
+  #history { left: 50%; transform: translateX(-50%); width: auto; display: flex; align-items: center; gap: 8px; padding: 6px; }
+  #history button { width: 128px; }
+  #history button.dim { opacity: 0.45; }
+  #histCount { min-width: 104px; padding-bottom: 1.4px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #toast { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--line); opacity: 0; transition: opacity .25s; pointer-events: none; line-height: 18px; }
+  #toast.show { opacity: 1; }
+  body.hide-ui .panel, body.hide-ui #hint { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body class="hints studio">
+<video id="video" playsinline muted></video>
+<canvas id="gl"></canvas>
+<canvas id="overlay"></canvas>
+
+<div class="panel" id="left">
+  <h1>Лепка руками</h1>
+  <h2>Инструмент</h2>
+  <div class="grid2" id="tools">
+    <button data-hand data-tool="grab">Тянуть <kbd>1</kbd></button>
+    <button data-hand data-tool="push">Вдавить <kbd>2</kbd></button>
+    <button data-hand data-tool="inflate">Надуть <kbd>3</kbd></button>
+    <button data-hand data-tool="smooth">Сгладить <kbd>4</kbd></button>
+    <button data-hand data-tool="flatten">Срезать <kbd>5</kbd></button>
+    <button data-hand data-tool="crease">Сжать <kbd>6</kbd></button>
+    <button data-hand data-tool="paint" class="wide">Краска <kbd>7</kbd></button>
+  </div>
+  <h2>Цвет</h2>
+  <div class="swatches" id="swatches"></div>
+  <div class="paintrow">
+    <button data-hand id="fill">Залить всё</button>
+    <button data-hand id="unpaint">Снять краску</button>
+    <label class="custom" title="Свой цвет (мышью)"><input type="color" id="customColor" value="#3d7bd9"></label>
+  </div>
+  <h2>Кисть</h2>
+  <div class="slider" data-hand="slider">
+    <div class="label">Размер <b id="radiusV"></b></div>
+    <input id="radius" type="range" min="0.08" max="0.9" step="0.01" value="0.35">
+  </div>
+  <div class="slider" data-hand="slider">
+    <div class="label">Сила <b id="strengthV"></b></div>
+    <input id="strength" type="range" min="0.1" max="2" step="0.05" value="1">
+  </div>
+  <div class="slider" data-hand="slider">
+    <div class="label">Глубина руки <b id="depthV"></b></div>
+    <input id="depth" type="range" min="0" max="4" step="0.1" value="1.5">
+  </div>
+  <div class="grid2" style="margin-top:8px">
+    <button data-hand id="sym" class="wide">Симметрия по X <kbd>M</kbd></button>
+  </div>
+  <div id="status"><span class="dot" id="dot"></span><span id="statusText">Запуск камеры…</span></div>
+</div>
+
+<div class="panel" id="right">
+  <h1>Объект</h1>
+  <h2>Новая форма</h2>
+  <div class="grid3">
+    <button data-hand data-shape="sphere">Сфера</button>
+    <button data-hand data-shape="cube">Куб</button>
+    <button data-hand data-shape="cylinder">Цилиндр</button>
+  </div>
+  <h2>Ракурс</h2>
+  <div class="grid3">
+    <button data-hand data-view="front">Спереди</button>
+    <button data-hand data-view="side">Сбоку</button>
+    <button data-hand data-view="back">Сзади</button>
+    <button data-hand data-view="top">Сверху</button>
+    <button data-hand data-view="bottom">Снизу</button>
+    <button data-hand data-view="three">3/4</button>
+  </div>
+  <h2>Вид</h2>
+  <div class="grid2">
+    <button data-hand id="mat">Глина <kbd>G</kbd></button>
+    <button data-hand id="wire">Сетка <kbd>W</kbd></button>
+    <button data-hand id="autorot">Вращение <kbd>T</kbd></button>
+    <button data-hand id="center">Центр <kbd>C</kbd></button>
+    <button data-hand id="detail">Детальнее <kbd>D</kbd></button>
+    <button data-hand id="bg">Фон <kbd>B</kbd></button>
+  </div>
+  <h2>Файл</h2>
+  <div class="grid2">
+    <button data-hand id="export">OBJ <kbd>E</kbd></button>
+    <button data-hand id="png">PNG <kbd>P</kbd></button>
+    <button data-hand id="hints" class="wide">Подсказки по жестам <kbd>H</kbd></button>
+  </div>
+</div>
+
+<div id="hint">
+  <span><b>Указательный 0.7 с</b> — нажать кнопку</span>
+  <span><b>Большой + указательный</b> — лепить, красить</span>
+  <span><b>Все пальцы к большому</b> — вращать, кистью — наклон</span>
+  <span><b>Две ладони</b> — подержать до кольца</span>
+  <span><b>Ладони к камере / от камеры</b> — крупнее / мельче</span>
+  <span><b>Мышь</b>: на форме — лепить, мимо — вращать</span>
+</div>
+<div class="panel" id="history">
+  <button data-hand id="undo">← Назад <kbd>Z</kbd></button>
+  <span id="histCount"></span>
+  <button data-hand id="redo">Вперёд → <kbd>Y</kbd></button>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const MP_VER = '0.10.14';
+const MP_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+const DWELL = 700;             // ms задержки указательного пальца над кнопкой
+const GRACE = 300;             // ms: короткий сбой щипка/щепоти или пропажа руки не обрывают жест (но и не двигают)
+const PINCH_ON = 0.30, PINCH_OFF = 0.45;   // щипок: сомкнуть ближе 0.30 ладони, разжать дальше 0.45
+// Два жеста-щепоти, расстояния от кончика большого пальца в долях ладони (запястье → основание среднего):
+//   лепка 👌 — к большому прижат только указательный (< PINCH_ON), средний далеко (> PINCH_MIDDLE_AWAY);
+//   вращение 🤌 («cup» в коде) — к большому прижаты указательный и средний (< GRAB_ON), безымянный рядом (< GRAB_RING);
+//   держится, пока указательный и средний ближе GRAB_OFF. Оба жеста включаются, только если форма продержалась ENGAGE мс:
+//   при сборе щепоти указательный касается большого чуть раньше остальных — это не должно начать лепку.
+const GRAB_ON = 0.45, GRAB_OFF = 0.62, GRAB_RING = 0.70, PINCH_MIDDLE_AWAY = 0.45, ENGAGE = 120, CUP_ARM = ENGAGE;
+const OPEN_RATIO = 0.55, OPEN_BEND = 0.95;   // открытая ладонь (масштаб): ширина/длина > 0.55 и пальцы прямые (прямота > 0.95)
+// прямота пальца = хорда от основания до кончика / сумма звеньев: 1 — прямой, ~0.3–0.45 — в кулаке
+const FINGERS = [[5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]];
+const C_OBJ = '#5aa9ff', C_SCULPT = '#b5651d', C_IDLE = 'rgba(255,255,255,0.8)';   // синий — объект, коричневый — лепка, белый — остальное
+const MAX_VERTS = 50000;       // предел детализации
+const TOOL_NAMES = { grab: 'Тянуть', push: 'Вдавить', inflate: 'Надуть', smooth: 'Сгладить', flatten: 'Срезать', crease: 'Сжать', paint: 'Краска' };
+const OBJ_LOCK = 600;          // ms: после жеста объекта (ладони, ребро) рука не может начать лепку и остаётся синей
+const PALM_GRACE = 500;        // ms: ладони на миг потерялись — масштаб не сбрасывается
+const PALETTE = ['#f2efe9', '#d9a77c', '#c0643c', '#d33a3a', '#f08c2e', '#f2c94c', '#4caf6a', '#3d7bd9', '#8a5cd6', '#2a2a2e'];
+
+const S = { tool: 'grab', radius: 0.35, strength: 1, depthGain: 1.5, sym: true, autorot: false, wire: false, mat: 0, shape: 'sphere',
+  paintHex: '#d33a3a', paint: null };
+const $ = (id) => document.getElementById(id);
+
+// ---------- three ----------
+const glCanvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+camera.position.set(0, 0, 6);
+scene.add(new THREE.HemisphereLight(0xfff4e6, 0x30343c, 1.4));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2.5, 3, 4); scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fc4ff, 1.0); rim.position.set(-3, 1, -2); scene.add(rim);
+
+// Цвет поверхности живёт в цветах вершин. Материал задаёт только блеск; его «родной» цвет (base)
+// красит непрокрашенные места. mask (0..1) — сколько в вершине краски: цвет = base·(1−mask) + краска.
+const MATS = [
+  { name: 'Глина', base: 0xd9a77c, m: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62 }) },
+  { name: 'Гипс', base: 0xeeebe4, m: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }) },
+  { name: 'Графит', base: 0x50545b, m: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.38, metalness: 0.35 }) },
+  { name: 'Нормали', base: null, m: new THREE.MeshNormalMaterial() },
+];
+let baseColor = new THREE.Color(MATS[0].base);   // в линейном пространстве, как цвета вершин
+S.paint = new THREE.Color(S.paintHex);
+
+function shapePositions(shape) {
+  let g = new THREE.IcosahedronGeometry(1, 5);
+  g.deleteAttribute('normal'); g.deleteAttribute('uv');
+  g = mergeVertices(g);
+  const p = g.attributes.position.array;
+  for (let i = 0; i < p.length; i += 3) {
+    const x = p[i], y = p[i + 1], z = p[i + 2];
+    let k = 1;
+    // superellipsoid: p = 8 gives a cube / cylinder with softly rounded edges
+    if (shape === 'cube') k = 0.82 / Math.pow(Math.abs(x) ** 8 + Math.abs(y) ** 8 + Math.abs(z) ** 8, 1 / 8);
+    else if (shape === 'cylinder') k = 0.85 / Math.pow(Math.hypot(x, z) ** 8 + Math.abs(y) ** 8, 1 / 8);
+    p[i] *= k; p[i + 1] *= k; p[i + 2] *= k;
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+let geo = shapePositions('sphere');
+const mesh = new THREE.Mesh(geo, MATS[0].m);
+scene.add(mesh);
+let pos, nrm, neighbors, col, mask;
+function ensureColors(g) {
+  if (g.attributes.color) return;
+  const n = g.attributes.position.count, c = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { c[i*3] = baseColor.r; c[i*3+1] = baseColor.g; c[i*3+2] = baseColor.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  g.userData.mask = new Float32Array(n);
+}
+function bindGeometry() {
+  ensureColors(geo);
+  pos = geo.attributes.position.array;
+  nrm = geo.attributes.normal.array;
+  col = geo.attributes.color.array;
+  mask = geo.userData.mask;
+  const n = pos.length / 3, idx = geo.index.array, sets = Array.from({ length: n }, () => new Set());
+  for (let i = 0; i < idx.length; i += 3) {
+    const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+    sets[a].add(b).add(c); sets[b].add(a).add(c); sets[c].add(a).add(b);
+  }
+  neighbors = sets.map((s) => Int32Array.from(s));
+  geo.computeBoundingSphere();
+}
+function setGeometry(g) {
+  dropGrabs();
+  const old = geo; geo = g; mesh.geometry = g; old.dispose(); bindGeometry();
+  undoStack.length = 0; redoStack.length = 0; updateHistory();
+}
+
+const cursor = new THREE.Mesh(
+  new THREE.RingGeometry(0.94, 1, 64),
+  new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthTest: false, side: THREE.DoubleSide })
+);
+cursor.renderOrder = 10; cursor.visible = false; scene.add(cursor);
+
+const overlay = $('overlay'), octx = overlay.getContext('2d');
+function resize() {
+  if (!innerWidth || !innerHeight) return;   // свёрнутое или скрытое окно: не ломать камеру (aspect = NaN)
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  overlay.width = innerWidth * devicePixelRatio; overlay.height = innerHeight * devicePixelRatio;
+}
+addEventListener('resize', resize);
+
+// ---------- undo ----------
+const undoStack = [], redoStack = [];
+function updateHistory() {
+  const n = undoStack.length, total = n + redoStack.length;
+  $('histCount').textContent = `Шаг ${n} из ${total}`;
+  $('undo').classList.toggle('dim', !n); $('redo').classList.toggle('dim', !redoStack.length);
+}
+const snapshot = () => ({ p: new Float32Array(pos), c: new Float32Array(col), m: new Float32Array(mask) });
+function restore(sn) { pos.set(sn.p); col.set(sn.c); mask.set(sn.m); afterEdit(); }
+function pushUndo() { undoStack.push(snapshot()); if (undoStack.length > 40) undoStack.shift(); redoStack.length = 0; updateHistory(); }
+function dropGrabs() { for (const [id, st] of strokes) if (st.mode === 'grab') strokes.delete(id); grabs.clear(); grabBase = null; }
+function undo() { dropGrabs(); const s = undoStack.pop(); if (!s) return toast('Отменять нечего'); redoStack.push(snapshot()); restore(s); updateHistory(); }
+function redo() { dropGrabs(); const s = redoStack.pop(); if (!s) return toast('Возвращать нечего'); undoStack.push(snapshot()); restore(s); updateHistory(); }
+function afterEdit() {
+  geo.attributes.position.needsUpdate = true;
+  geo.attributes.color.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+}
+
+// ---------- sculpt core ----------
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const tmpV = new THREE.Vector3(), tmpN = new THREE.Vector3(), camForward = new THREE.Vector3();
+function screenToNdc(x, y) { return ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1); }
+function hitTest(x, y) { raycaster.setFromCamera(screenToNdc(x, y), camera); return raycaster.intersectObject(mesh, false)[0] || null; }
+function planePoint(x, y, origin) {
+  raycaster.setFromCamera(screenToNdc(x, y), camera);
+  camera.getWorldDirection(camForward);
+  return raycaster.ray.intersectPlane(new THREE.Plane().setFromNormalAndCoplanarPoint(camForward, origin), new THREE.Vector3());
+}
+const falloff = (d, r) => { const t = 1 - (d * d) / (r * r); return t > 0 ? t * t : 0; };
+const localRadius = () => S.radius / mesh.scale.x;
+
+function gatherAt(c, r) {
+  const out = [], r2 = r * r, n = pos.length / 3;
+  for (let i = 0; i < n; i++) {
+    const dx = pos[i * 3] - c.x, dy = pos[i * 3 + 1] - c.y, dz = pos[i * 3 + 2] - c.z, d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 < r2) out.push([i, falloff(Math.sqrt(d2), r)]);
+  }
+  return out;
+}
+// for grab: both sides merged, mirrored flag per vertex
+function gatherSym(c, r) {
+  const m = new Map();
+  for (const [i, w] of gatherAt(c, r)) m.set(i, [i, w, false]);
+  if (S.sym) for (const [i, w] of gatherAt(new THREE.Vector3(-c.x, c.y, c.z), r)) { const p = m.get(i); if (!p || p[1] < w) m.set(i, [i, w, true]); }
+  return [...m.values()];
+}
+
+function brushAt(tool, c, dt) {
+  const r = localRadius(), verts = gatherAt(c, r);
+  if (!verts.length) return;
+  const k = S.strength * Math.min(dt, 0.05) * 1.2 / mesh.scale.x;
+  if (tool === 'smooth') {
+    const copy = new Float32Array(pos);
+    for (const [i, w] of verts) {
+      const nb = neighbors[i]; let sx = 0, sy = 0, sz = 0;
+      for (let j = 0; j < nb.length; j++) { const b = nb[j] * 3; sx += copy[b]; sy += copy[b + 1]; sz += copy[b + 2]; }
+      const m = nb.length, a = Math.min(1, w * k * 12 * mesh.scale.x);
+      pos[i * 3] += (sx / m - copy[i * 3]) * a; pos[i * 3 + 1] += (sy / m - copy[i * 3 + 1]) * a; pos[i * 3 + 2] += (sz / m - copy[i * 3 + 2]) * a;
+    }
+  } else if (tool === 'flatten') {
+    // plane through weighted centroid, along weighted average normal
+    let cx = 0, cy = 0, cz = 0, nx = 0, ny = 0, nz = 0, ws = 0;
+    for (const [i, w] of verts) { cx += pos[i*3]*w; cy += pos[i*3+1]*w; cz += pos[i*3+2]*w; nx += nrm[i*3]*w; ny += nrm[i*3+1]*w; nz += nrm[i*3+2]*w; ws += w; }
+    cx /= ws; cy /= ws; cz /= ws; const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+    const a = Math.min(1, k * 10 * mesh.scale.x);
+    for (const [i, w] of verts) {
+      const d = (pos[i*3] - cx) * nx + (pos[i*3+1] - cy) * ny + (pos[i*3+2] - cz) * nz;
+      if (d > 0) { const s = d * w * a; pos[i*3] -= nx * s; pos[i*3+1] -= ny * s; pos[i*3+2] -= nz * s; }
+    }
+  } else if (tool === 'crease') {
+    // pull towards the brush centre and slightly inwards: sharp groove
+    const a = Math.min(1, k * 4 * mesh.scale.x);
+    for (const [i, w] of verts) {
+      pos[i*3] += (c.x - pos[i*3]) * w * a - nrm[i*3] * w * k * 0.25;
+      pos[i*3+1] += (c.y - pos[i*3+1]) * w * a - nrm[i*3+1] * w * k * 0.25;
+      pos[i*3+2] += (c.z - pos[i*3+2]) * w * a - nrm[i*3+2] * w * k * 0.25;
+    }
+  } else if (tool === 'paint') {
+    // краска: цвет тянется к выбранному, mask растёт; сила задаёт, как быстро ложится слой
+    const a0 = Math.min(1, k * 8 * mesh.scale.x), pc = S.paint;
+    for (const [i, w] of verts) {
+      const a = Math.min(1, w * a0);
+      col[i*3] += (pc.r - col[i*3]) * a; col[i*3+1] += (pc.g - col[i*3+1]) * a; col[i*3+2] += (pc.b - col[i*3+2]) * a;
+      mask[i] += (1 - mask[i]) * a;
+    }
+  } else {
+    const sign = tool === 'push' ? -1 : 1;
+    for (const [i, w] of verts) {
+      const s = sign * w * k * 0.5;
+      pos[i*3] += nrm[i*3] * s; pos[i*3+1] += nrm[i*3+1] * s; pos[i*3+2] += nrm[i*3+2] * s;
+    }
+  }
+}
+function applyContinuous(tool, c, dt) {
+  brushAt(tool, c, dt);
+  if (S.sym) brushAt(tool, new THREE.Vector3(-c.x, c.y, c.z), dt);
+  afterEdit();
+}
+
+// ---------- strokes (shared by hands and mouse) ----------
+const strokes = new Map();
+function cancelStroke(id) {
+  const st = strokes.get(id); if (!st) return;
+  if (st.mode === 'grab') grabEnd(st);
+  strokes.delete(id);
+}
+
+// «Тянуть» несколькими руками сразу: позиции = база + сумма вкладов всех активных захватов.
+// Когда захват заканчивается, его вклад запекается в базу. При втором захвате зеркало отключается
+// у всех текущих захватов, чтобы обе руки не тянули одну сторону дважды.
+const grabs = new Set();
+let grabBase = null;
+function grabContrib(g, target, sign) {
+  const d = g.delta;
+  for (const [i, w, mir] of g.verts) {
+    if (mir && g.noMirror) continue;
+    target[i*3] += sign * (mir ? -d.x : d.x) * w; target[i*3+1] += sign * d.y * w; target[i*3+2] += sign * d.z * w;
+  }
+}
+function grabStart(st) {
+  if (!grabs.size) { pushUndo(); grabBase = new Float32Array(pos); }
+  else { for (const g of grabs) g.noMirror = true; st.noMirror = true; }
+  grabs.add(st);
+}
+function grabApply() {
+  pos.set(grabBase);
+  for (const g of grabs) grabContrib(g, pos, 1);
+  afterEdit();
+}
+function grabEnd(st) {
+  if (!grabs.has(st)) return;
+  grabContrib(st, grabBase, 1);          // запечь вклад в базу
+  grabs.delete(st);
+  if (!grabs.size) grabBase = null;
+}
+// ---------- вид: свободное вращение, как шар ----------
+// Ориентация — кватернион view.q без каких-либо ограничений. Каждый сдвиг руки поворачивает модель
+// вокруг осей ЭКРАНА: вбок — вокруг вертикали экрана, вверх-вниз — вокруг горизонтали экрана.
+// Поэтому направление всегда совпадает с движением руки, даже если модель уже перевёрнута.
+// yaw/pitch — только накопленные счётчики (для подписей и тестов), на ориентацию не влияют.
+// После отпускания модель докручивается по инерции; кнопки ракурсов ведут к цели плавно (slerp).
+// Третья ось — наклон вбок (roll, вокруг оси взгляда): щепоть + поворот кисти, как ручку крутишь.
+// ROLL_K — во сколько раз наклон модели больше поворота кисти (кисть поворачивается недалеко).
+// ROLL_LOCK — на сколько повернуть кисть, чтобы жест выбрал наклон (пока запястье почти не сдвинулось).
+const ROT_K = 0.009, AXIS_LOCK_PX = 18, ROLL_K = 1.5, ROLL_LOCK = THREE.MathUtils.degToRad(12);
+const view = { q: new THREE.Quaternion(), yaw: 0, pitch: 0, roll: 0, vyaw: 0, vpitch: 0, vroll: 0, target: null, held: false };
+const AX_X = new THREE.Vector3(1, 0, 0), AX_Y = new THREE.Vector3(0, 1, 0), AX_Z = new THREE.Vector3(0, 0, 1), qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+function rotateScreen(dyaw, dpitch, droll = 0) {
+  if (dyaw) view.q.premultiply(qa.setFromAxisAngle(AX_Y, dyaw));
+  if (dpitch) view.q.premultiply(qa.setFromAxisAngle(AX_X, dpitch));
+  if (droll) view.q.premultiply(qa.setFromAxisAngle(AX_Z, droll));
+  view.q.normalize();
+  view.yaw += dyaw; view.pitch += dpitch; view.roll += droll;
+}
+function applyView() { mesh.quaternion.copy(view.q); }
+const VIEWS = { front: [0, 0], side: [-90, 0], back: [180, 0], top: [0, 90], bottom: [0, -90], three: [-45, 20] };
+const VIEW_NAMES = { front: 'Спереди', side: 'Сбоку', back: 'Сзади', top: 'Сверху', bottom: 'Снизу', three: '3/4' };
+function setView(name) {
+  const [y, p] = VIEWS[name].map(THREE.MathUtils.degToRad);
+  view.target = new THREE.Quaternion().setFromAxisAngle(AX_X, p).multiply(qb.setFromAxisAngle(AX_Y, y));
+  view.vyaw = view.vpitch = view.vroll = 0;
+}
+function stepView(dt) {
+  if (view.target) {
+    view.q.slerp(view.target, 1 - Math.exp(-dt * 9));
+    if (view.q.angleTo(view.target) < 1e-3) { view.q.copy(view.target); view.target = null; }
+  } else if (!view.held && (view.vyaw || view.vpitch || view.vroll)) {
+    rotateScreen(view.vyaw * dt, view.vpitch * dt, view.vroll * dt);
+    const decay = Math.exp(-dt * 3.5); view.vyaw *= decay; view.vpitch *= decay; view.vroll *= decay;
+    if (Math.abs(view.vyaw) < 0.02) view.vyaw = 0; if (Math.abs(view.vpitch) < 0.02) view.vpitch = 0; if (Math.abs(view.vroll) < 0.02) view.vroll = 0;
+  }
+  applyView();
+}
+function stopInertia() { view.vyaw = view.vpitch = view.vroll = 0; view.target = null; }
+// поворот от движения указателя. lockAxis — для рук: сначала мёртвая зона, потом одна из трёх осей:
+// запястье сдвинулось ≥ AXIS_LOCK_PX — поворот (вбок) или вверх-вниз; кисть повернулась ≥ ROLL_LOCK — наклон.
+// dang — поворот кисти на экране (рад, по часовой стрелке +). rollOnly — мышь с Shift: dx крутит наклон.
+function turn(st, dx, dy, dang, dt, lockAxis, rollOnly) {
+  view.target = null; view.held = true;
+  if (rollOnly) { dang = dx * ROT_K / ROLL_K; dx = dy = 0; }
+  if (lockAxis && !st.axis) {
+    st.ax += dx; st.ay += dy; st.aa += dang;
+    if (Math.abs(st.aa) >= ROLL_LOCK && Math.hypot(st.ax, st.ay) < AXIS_LOCK_PX * 1.5) st.axis = 'roll';
+    else if (Math.hypot(st.ax, st.ay) >= AXIS_LOCK_PX) st.axis = Math.abs(st.ax) >= Math.abs(st.ay) ? 'yaw' : 'pitch';
+    else return;
+    // пройденное в мёртвой зоне не теряем
+    dx = st.axis === 'yaw' ? st.ax : 0; dy = st.axis === 'pitch' ? st.ay : 0; dang = st.axis === 'roll' ? st.aa : 0;
+  }
+  const useX = !lockAxis || st.axis === 'yaw', useY = !lockAxis || st.axis === 'pitch', useR = rollOnly || st.axis === 'roll';
+  const dyaw = useX ? dx * ROT_K : 0, dpitch = useY ? dy * ROT_K : 0;
+  const droll = useR ? -dang * ROLL_K : 0;           // кисть по часовой (на экране) → модель по часовой
+  rotateScreen(dyaw, dpitch, droll);
+  const s = Math.max(dt, 1 / 120), b = 0.35;
+  view.vyaw += (dyaw / s - view.vyaw) * b; view.vpitch += (dpitch / s - view.vpitch) * b; view.vroll += (droll / s - view.vroll) * b;
+}
+const wrapAng = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+// p: {x, y, active, rotate, size}
+function updatePointer(id, p, dt) {
+  let st = strokes.get(id);
+  if (p.rotate) {
+    if (st && st.mode === 'rotate') {
+      const dang = p.angle !== undefined ? wrapAng(p.angle - st.la) : 0;
+      turn(st, p.x - st.lx, p.y - st.ly, dang, dt, p.lockAxis, p.rollOnly);
+      st.lx = p.x; st.ly = p.y; if (p.angle !== undefined) st.la = p.angle;
+    }
+    else { stopInertia(); strokes.set(id, { mode: 'rotate', lx: p.x, ly: p.y, la: p.angle ?? 0, ax: 0, ay: 0, aa: 0, axis: null }); }
+    return null;
+  }
+  if (st && st.mode === 'rotate') { strokes.delete(id); st = null; }
+  const hit = hitTest(p.x, p.y);
+  if (!p.active) { if (st) cancelStroke(id); return hit; }
+
+  if (!st) {
+    if (!hit) return null;
+    stopInertia();
+    st = { mode: S.tool, size0: p.size };
+    if (S.tool === 'grab') {
+      st.hitWorld = hit.point.clone();
+      st.local = mesh.worldToLocal(hit.point.clone());
+      st.verts = gatherSym(st.local, localRadius());
+      st.delta = new THREE.Vector3();
+      grabStart(st);
+    } else pushUndo();
+    strokes.set(id, st);
+  }
+  if (st.mode === 'grab') {
+    const a = planePoint(p.x, p.y, st.hitWorld);
+    if (!a) return hit;
+    const delta = a.sub(st.hitWorld);
+    if (p.size && st.size0) { camera.getWorldDirection(camForward); delta.addScaledVector(camForward, -(p.size / st.size0 - 1) * S.depthGain); }
+    delta.applyQuaternion(mesh.quaternion.clone().invert()).divideScalar(mesh.scale.x);
+    st.delta.copy(delta);
+    grabApply();
+    return { point: mesh.localToWorld(tmpV.copy(st.local).add(delta)).clone(), face: null };
+  }
+  if (hit) applyContinuous(st.mode, mesh.worldToLocal(hit.point.clone()), dt);
+  return hit;
+}
+
+// ---------- масштаб: две открытые ладони к камере / от камеры ----------
+// Включение: обе ладони открыты и держатся почти неподвижно PALM_ARM мс (кольцо у ладоней).
+// Дальше масштаб = s0 × r², где r — средний размер ладоней относительно момента включения,
+// за вычетом мёртвой зоны ±PALM_DZ. Выключение: ладони закрылись или пропали дольше GRACE.
+const PALM_ARM = 450, PALM_DZ = 0.04, PALM_STILL = 0.08;
+let palms = null;
+function updatePalms(now) {
+  const open = hands.filter((h) => h.open && !h.pinch);
+  if (open.length === 2) {
+    if (!palms) palms = { t0: now, armed: false, size0: 0, progress: 0 };
+    palms.lostT = 0;
+    palms.hands = open.map((h) => h.id);
+    const avg = (open[0].palmSize + open[1].palmSize) / 2;
+    if (!palms.armed) {
+      if (!palms.size0 || Math.abs(avg / palms.size0 - 1) > PALM_STILL) { palms.size0 = avg; palms.t0 = now; }
+      palms.progress = Math.min(1, (now - palms.t0) / PALM_ARM);
+      if (palms.progress >= 1) { palms.armed = true; palms.s0 = mesh.scale.x; palms.size0 = avg; stopInertia(); }
+    } else {
+      let r = avg / palms.size0;
+      r = r > 1 + PALM_DZ ? r - PALM_DZ : r < 1 - PALM_DZ ? r + PALM_DZ : 1;
+      mesh.scale.setScalar(THREE.MathUtils.clamp(palms.s0 * r * r, 0.2, 5));
+    }
+  } else if (palms) {
+    if (!palms.lostT) palms.lostT = now;
+    if (now - palms.lostT > PALM_GRACE) palms = null;
+  }
+}
+
+// ---------- mouse ----------
+const mouse = { x: 0, y: 0, l: false, r: false, m: false, inside: false, px: 0, py: 0 };
+glCanvas.addEventListener('pointermove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.inside = true; });
+glCanvas.addEventListener('pointerleave', () => { mouse.inside = false; mouse.l = mouse.r = mouse.m = false; });
+glCanvas.addEventListener('pointerdown', (e) => {
+  mouse.shift = e.shiftKey;
+  glCanvas.setPointerCapture(e.pointerId);
+  if (e.button === 0) mouse.l = true; if (e.button === 2) mouse.r = true;
+  if (e.button === 1) { mouse.m = true; mouse.px = e.clientX; mouse.py = e.clientY; e.preventDefault(); }
+});
+glCanvas.addEventListener('pointerup', (e) => { if (e.button === 0) mouse.l = false; if (e.button === 2) mouse.r = false; if (e.button === 1) mouse.m = false; });
+glCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+glCanvas.addEventListener('wheel', (e) => {
+  const d = e.deltaY || e.deltaX;
+  if (e.shiftKey) mesh.scale.setScalar(THREE.MathUtils.clamp(mesh.scale.x * (d > 0 ? 0.93 : 1.07), 0.2, 5));
+  else setRadius(S.radius * (d > 0 ? 0.92 : 1.08));
+  e.preventDefault();
+}, { passive: false });
+
+// ---------- hands ----------
+// Форма руки по 21 точке (экранные px). Отдельной функцией, чтобы проверять на синтетических позах.
+function classifyHand(pts) {
+  const d = (a, b) => Math.hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y);
+  const palm = d(0, 9) || 1;
+  const curled = [[8, 5], [12, 9], [16, 13], [20, 17]].filter(([t, m]) => d(t, 0) < d(m, 0) * 1.05).length;
+  const fist = curled >= 3;
+  const straight = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([t, m]) => d(t, 0) > d(m, 0) * 1.1).length;
+  const fingersUp = straight === 4 && pts[12].y < pts[0].y;
+  const widthRatio = d(5, 17) / palm;                 // анфас ~0.8, ребром < 0.4
+  const bends = FINGERS.map(([a, b, c, t]) => d(a, t) / ((d(a, b) + d(b, c) + d(c, t)) || 1));
+  const bend = bends.reduce((x, y) => x + y, 0) / 4;
+  const pinchD = d(4, 8) / palm, dM = d(4, 12) / palm, dR = d(4, 16) / palm;
+  const indexOut = d(8, 0) > d(6, 0) * 1.15;
+  const indexCurled = d(8, 0) < d(5, 0) * 1.1;          // кончик указательного загнут в ладонь (кулак)
+  // 🤌 все к большому, пальцы вытянуты вперёд (в кулаке кончики тоже у большого, но загнуты в ладонь — это не щепоть)
+  const grabOn = pinchD < GRAB_ON && dM < GRAB_ON && dR < GRAB_RING && !indexCurled;
+  const grabHold = pinchD < GRAB_OFF && dM < GRAB_OFF && !indexCurled;
+  const othersIn = [[12, 10], [16, 14], [20, 18]].filter(([t, m]) => d(t, 0) < d(m, 0)).length >= 2;
+  return { palm, fist, fingersUp, widthRatio, bend, pinchD, dM, dR, grabOn, grabHold, indexOut, indexCurled, othersIn };
+}
+// One Euro Filter: при медленном движении сильно гасит дрожь, при быстром почти не запаздывает
+class OneEuro {
+  constructor(minCutoff, beta, dCutoff = 1) { this.minCutoff = minCutoff; this.beta = beta; this.dCutoff = dCutoff; this.x = null; this.dx = 0; this.t = 0; }
+  static alpha(cutoff, dt) { const tau = 1 / (2 * Math.PI * cutoff); return 1 / (1 + tau / dt); }
+  filter(x, t) {
+    if (this.x === null) { this.x = x; this.t = t; return x; }
+    const dt = Math.max(0.001, (t - this.t) / 1000); this.t = t;
+    this.dx += OneEuro.alpha(this.dCutoff, dt) * ((x - this.x) / dt - this.dx);
+    this.x += OneEuro.alpha(this.minCutoff + this.beta * Math.abs(this.dx), dt) * (x - this.x);
+    return this.x;
+  }
+}
+const EURO_POS = [1.2, 0.012], EURO_SIZE = [0.6, 0.004];
+const video = $('video');
+let landmarker = null, lastVideoTime = -1, hands = [];
+const handState = {};
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: 'user' }, audio: false });
+    video.srcObject = stream; await video.play();
+  } catch (e) { setStatus(false, 'Нет камеры — работает мышь'); return; }
+  setStatus(false, 'Загрузка модели рук…');
+  try {
+    const { FilesetResolver, HandLandmarker } = await import(`${MP_URL}/vision_bundle.mjs`);
+    const fs = await FilesetResolver.forVisionTasks(`${MP_URL}/wasm`);
+    const opts = (delegate) => ({ baseOptions: { modelAssetPath: MODEL_URL, delegate }, runningMode: 'VIDEO', numHands: 2,
+      minHandDetectionConfidence: 0.6, minHandPresenceConfidence: 0.6, minTrackingConfidence: 0.5 });
+    try { landmarker = await HandLandmarker.createFromOptions(fs, opts('GPU')); }
+    catch { landmarker = await HandLandmarker.createFromOptions(fs, opts('CPU')); }
+    setStatus(true, 'Камера и руки готовы');
+  } catch (e) { console.error(e); setStatus(false, 'Модель рук не загрузилась — работает мышь'); }
+}
+
+function toScreen(lm) {
+  const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+  const sc = Math.max(innerWidth / vw, innerHeight / vh), dw = vw * sc, dh = vh * sc;
+  return { x: (innerWidth - dw) / 2 + (1 - lm.x) * dw, y: (innerHeight - dh) / 2 + lm.y * dh };
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function readHands() {
+  if (!landmarker || video.readyState < 2 || video.currentTime === lastVideoTime) return;
+  lastVideoTime = video.currentTime;
+  const now = performance.now();
+  processHands(landmarker.detectForVideo(video, now), now);
+}
+function processHands(res, now) {
+  const seen = new Set();
+  hands = (res.landmarks || []).map((lms, k) => {
+    const label = res.handedness?.[k]?.[0]?.categoryName || 'H' + k;
+    seen.add(label);
+    const pts = lms.map(toScreen);
+    const K = classifyHand(pts);
+    const { palm, fist, fingersUp, widthRatio, pinchD } = K;
+    const hs = handState[label] || (handState[label] = { raw: false, mode: null, lastPinch: 0, pinchSince: 0, cup: false, cupSince: 0, cupLast: 0, x: 0, y: 0, size: palm,
+      fx: new OneEuro(...EURO_POS), fy: new OneEuro(...EURO_POS), fs: new OneEuro(...EURO_SIZE), fp: new OneEuro(...EURO_SIZE),
+      fwx: new OneEuro(...EURO_POS), fwy: new OneEuro(...EURO_POS), fang: new OneEuro(1.0, 0.3), ang: null });
+    // пока рука в жесте объекта (и OBJ_LOCK мс после) — щипок не считается: над моделью не переключится в лепку
+    const objLock = now - (hs.objT || 0) < OBJ_LOCK;
+    // щепоть 🤌 (вращение): включённая держится по мягкому порогу
+    const cupShape = hs.cup ? K.grabHold : (K.grabOn && !hs.raw);
+    // щипок 👌 (лепка): только большой + указательный, средний далеко; включается через ENGAGE мс устойчивой формы
+    if (hs.raw) hs.raw = !objLock && !hs.cup && pinchD < PINCH_OFF;
+    else {
+      const cand = !objLock && !K.indexCurled && !hs.cup && !K.grabOn && pinchD < PINCH_ON && K.dM > PINCH_MIDDLE_AWAY;   // остальные пальцы могут быть поджаты
+      if (cand) { if (!hs.pinchSince) hs.pinchSince = now; if (now - hs.pinchSince >= ENGAGE) hs.raw = true; }
+      else hs.pinchSince = 0;
+    }
+    if (hs.raw) hs.lastPinch = now;
+    // лепка держится GRACE мс после разжатия, но в это время ничего не двигает (pinchLive = false)
+    const held = hs.raw || (hs.mode === 'sculpt' && now - hs.lastPinch < GRACE);
+    // щепоть: включается, если держится CUP_ARM мс; короткий сбой формы — замирание, не выключение
+    if (cupShape) { if (!hs.cupSince) hs.cupSince = now; hs.cupLast = now; } else hs.cupSince = 0;
+    const cupArm = cupShape ? Math.min(1, (now - hs.cupSince) / CUP_ARM) : 0;
+    if (cupArm >= 1 && !hs.cup) { hs.cup = true; hs.cupOnT = now; }
+    if (hs.cup && !cupShape && now - hs.cupLast > GRACE) hs.cup = false;
+    // «указывает»: указательный вытянут, из среднего/безымянного/мизинца согнуты хотя бы два, не щипок
+    const pointing = K.indexOut && K.othersIn && !hs.raw;
+    // открытая ладонь анфас (для масштаба)
+    const open = fingersUp && widthRatio > OPEN_RATIO && K.bend > OPEN_BEND && !hs.raw;
+    hs.palmSize = hs.fp.filter(dist(pts[0], pts[12]), now);   // запястье → кончик среднего: крупная мерка, меньше шума
+    // курсор: при щипке — середина между большим и указательным (меньше уезжает при разжатии),
+    // щепотью — середина кончиков большого, указательного и среднего, иначе — кончик указательного
+    const t = hs.raw ? { x: (pts[4].x + pts[8].x) / 2, y: (pts[4].y + pts[8].y) / 2 }
+      : (hs.cup || cupShape) ? { x: (pts[4].x + pts[8].x + pts[12].x) / 3, y: (pts[4].y + pts[8].y + pts[12].y) / 3 } : pts[8];
+    hs.x = hs.fx.filter(t.x, now); hs.y = hs.fy.filter(t.y, now); hs.size = hs.fs.filter(palm, now);
+    // для вращения: запястье (почти не сдвигается, когда крутишь кисть) и угол кисти «запястье → основание среднего»,
+    // развёрнутый без скачков через ±180°
+    hs.wx = hs.fwx.filter(pts[0].x, now); hs.wy = hs.fwy.filter(pts[0].y, now);
+    const a = Math.atan2(pts[9].y - pts[0].y, pts[9].x - pts[0].x);
+    hs.angU = hs.ang === null ? a : hs.angU + Math.atan2(Math.sin(a - hs.ang), Math.cos(a - hs.ang)); hs.ang = a;
+    hs.angF = hs.fang.filter(hs.angU, now);
+    hs.seen = now;
+    return (hs.last = { id: 'hand-' + label, label, pts, fist, pointing, open, palmSize: hs.palmSize,
+      pinch: held, pinchLive: hs.raw, cup: hs.cup, cupLive: hs.cup && cupShape, cupArm, K, wx: hs.wx, wy: hs.wy, angle: hs.angF,
+      hs, x: hs.x, y: hs.y, size: hs.size });
+  });
+  // рука на миг пропала из кадра: держим её последнее положение GRACE мс, потом снимаем
+  for (const l of Object.keys(handState)) {
+    if (seen.has(l)) continue;
+    const hs = handState[l];
+    if (hs.last && now - hs.seen < GRACE) hands.push({ ...hs.last, pinchLive: false, cupLive: false, ghost: true });   // призрак: держит жест, но не двигает
+    else { delete handState[l]; cancelStroke('hand-' + l); releaseUI('hand-' + l); }
+  }
+}
+
+// ---------- hand-driven UI: only the pointing index finger, dwell 1 s ----------
+const uiState = {};
+function uiAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return { target: el?.closest('[data-hand]') || null, panel: !!el?.closest('.panel') };
+}
+function setSliderFromX(input, x) {
+  const r = input.getBoundingClientRect();
+  const t = THREE.MathUtils.clamp((x - r.left) / r.width, 0, 1);
+  input.value = +input.min + t * (+input.max - +input.min);
+  input.dispatchEvent(new Event('input'));
+}
+function clearHover(el) { if (el) { el.classList.remove('hand-hover'); el.style.setProperty('--p', 0); } }
+function releaseUI(id) {
+  const st = uiState[id]; if (!st) return;
+  clearHover(st.el); st.cap?.closest('.slider').classList.remove('captured');
+  delete uiState[id];
+}
+function handleUI(h, now) {
+  const st = uiState[h.id] || (uiState[h.id] = { el: null, t0: 0, fired: false, cap: null });
+  if (st.cap) {
+    const row = st.cap.closest('.slider').getBoundingClientRect();
+    if (h.y < row.top - 24 || h.y > row.bottom + 24 || h.x < row.left - 40 || h.x > row.right + 40) {
+      st.cap.closest('.slider').classList.remove('captured'); st.cap = null; st.fired = true;
+    } else { setSliderFromX(st.cap, h.x); return { over: true, label: 'Ползунок: веди вбок · уведи вверх или вниз — отпустить' }; }
+  }
+  const { target, panel } = uiAt(h.x, h.y);
+  if (target !== st.el) { clearHover(st.el); st.el = target; st.t0 = now; st.fired = false; }
+  if (!target) return { over: panel };
+  if (!h.pointing) { clearHover(target); st.t0 = now; return { over: true, label: st.fired ? '' : 'Наведи вытянутым указательным' }; }
+  target.classList.add('hand-hover');
+  const prog = st.fired ? 0 : Math.min(1, (now - st.t0) / DWELL);
+  target.style.setProperty('--p', prog);
+  if (!st.fired && prog >= 1) {
+    st.fired = true; target.style.setProperty('--p', 0);
+    if (target.dataset.hand === 'slider') { st.cap = target.querySelector('input'); target.classList.add('captured'); setSliderFromX(st.cap, h.x); }
+    else target.click();
+  }
+  return { over: true, progress: st.fired ? 0 : prog };
+}
+
+// ---------- overlay ----------
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+function pill(text, x, y) {
+  octx.font = '500 13px system-ui, "Segoe UI", sans-serif';
+  const m = octx.measureText(text);
+  const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
+  const w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight, padX = 8, padY = 6;
+  const bw = w + padX * 2, bh = asc + desc + padY * 2;
+  const bx = Math.min(x, innerWidth - bw - 8), by = y;
+  octx.fillStyle = 'rgba(20,22,27,0.85)';
+  octx.beginPath(); octx.roundRect(bx, by, bw, bh, 6); octx.fill();
+  octx.fillStyle = '#e8e6e1';
+  octx.fillText(text, bx + padX + m.actualBoundingBoxLeft, by + padY + asc);
+}
+function drawOverlay() {
+  const dpr = devicePixelRatio;
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  octx.clearRect(0, 0, innerWidth, innerHeight);
+  if (S.debug) for (const h of hands) {
+    // замеры для подстройки порогов (клавиша I): прямота пальцев, ширина ладони, щипок, что распознано
+    const K = h.K; if (!K) continue;
+    const what = h.cup ? 'вращение' : h.pinch ? 'лепка' : h.open ? 'ладонь' : h.pointing ? 'указывает' : K.fist ? 'кулак' : '—';
+    pill(`к большому: указ. ${K.pinchD.toFixed(2)} · средн. ${K.dM.toFixed(2)} · безым. ${K.dR.toFixed(2)} · прямота ${K.bend.toFixed(2)} · ${what}`, h.pts[0].x - 160, h.pts[0].y + 24);
+  }
+  for (const h of hands) {
+    const inPalms = palms?.hands?.includes(h.id);
+    const sculpt = h.pinch && h.hs.mode === 'sculpt';
+    const cupAny = h.cup || h.cupArm > 0;
+    const col = inPalms || h.cup || h.objLock ? C_OBJ : sculpt ? C_SCULPT : C_IDLE;
+    octx.strokeStyle = col; octx.fillStyle = col; octx.lineWidth = 2;
+    octx.beginPath();
+    for (const [a, b] of BONES) { octx.moveTo(h.pts[a].x, h.pts[a].y); octx.lineTo(h.pts[b].x, h.pts[b].y); }
+    octx.stroke();
+    for (const p of h.pts) { octx.beginPath(); octx.arc(p.x, p.y, 2.5, 0, Math.PI * 2); octx.fill(); }
+    if (inPalms || cupAny) {
+      // жесты объекта: синее кольцо вокруг центра ладони, заполняется при включении
+      const c = h.pts[9];
+      const prog = inPalms ? (palms.armed ? 1 : palms.progress) : (h.cup ? 1 : h.cupArm);
+      octx.strokeStyle = C_OBJ; octx.lineWidth = 4;
+      octx.beginPath(); octx.arc(c.x, c.y, 26, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); octx.stroke();
+      let text = '';
+      if (inPalms) { if (h.id === palms.hands[0]) text = palms.armed ? `Масштаб ${Math.round(mesh.scale.x * 100)} % · к камере — крупнее, от камеры — мельче` : 'Держи ладони…'; }
+      else if (!h.cup) text = 'Щепоть…';
+      else if (h.id !== cupRotator) text = 'Вращает другая рука';
+      else { const st = strokes.get(h.id); text = st?.axis === 'yaw' ? 'Поворот ↔' : st?.axis === 'pitch' ? 'Вверх-вниз ↕' : st?.axis === 'roll' ? 'Наклон ⟲' : 'Веди руку вбок или вверх-вниз · поверни кисть — наклон'; }
+      if (text) pill(text, c.x + 34, c.y + 14);
+      continue;
+    }
+    // курсор + кольцо задержки над кнопкой (белые: это не действие с моделью)
+    octx.lineWidth = 2.5;
+    octx.beginPath(); octx.arc(h.x, h.y, 9, 0, Math.PI * 2); octx.stroke();
+    if (h.ui?.progress > 0) {
+      octx.strokeStyle = '#ffffff'; octx.lineWidth = 4;
+      octx.beginPath(); octx.arc(h.x, h.y, 16, -Math.PI / 2, -Math.PI / 2 + h.ui.progress * Math.PI * 2); octx.stroke();
+    }
+    let text = '';
+    if (h.ui?.label) text = h.ui.label;
+    else if (h.ui?.over) text = '';
+    else if (sculpt) text = TOOL_NAMES[S.tool];
+    if (text) pill(text, h.x + 20, h.y + 14);
+  }
+}
+
+// ---------- 3D cursor ----------
+const nMat = new THREE.Matrix3();
+function placeCursor(hit, active) {
+  if (!hit || !hit.point) { cursor.visible = false; return; }
+  cursor.visible = true;
+  cursor.position.copy(hit.point);
+  if (hit.face) { nMat.getNormalMatrix(mesh.matrixWorld); tmpN.copy(hit.face.normal).applyMatrix3(nMat).normalize(); cursor.lookAt(tmpN.add(hit.point)); }
+  cursor.scale.setScalar(S.radius);
+  cursor.material.color.set(S.tool === 'paint' ? S.paintHex : active ? C_SCULPT : 0xffffff);
+}
+
+// ---------- loop ----------
+let last = performance.now();
+let cupRotator = null;
+function frame(now, manual) {
+  const dt = (now - last) / 1000; last = now;
+  readHands();
+  let shown = false, busy = false;
+
+  // руки в жесте объекта помечаются: OBJ_LOCK мс после этого они не лепят и остаются синими
+  for (const h of hands) if (h.cup || h.cupArm > 0 || palms?.hands?.includes(h.id) || (h.open && palms)) h.hs.objT = now;
+  for (const h of hands) h.objLock = now - (h.hs.objT || 0) < OBJ_LOCK;
+  for (const h of hands) h.ui = (h.cup || h.cupArm > 0 || h.objLock) ? { over: false } : handleUI(h, now);
+  // щипок: начат на форме — лепка до разжатия; начат мимо формы или над панелью — ничего
+  for (const h of hands) {
+    if (!h.pinch) h.hs.mode = null;
+    else if (!h.hs.mode) h.hs.mode = !h.ui.over && hitTest(h.x, h.y) ? 'sculpt' : 'none';
+  }
+  view.held = false;
+  updatePalms(now);
+  if (palms?.armed) busy = true;
+  // вращает одна рука ребром — та, что включилась раньше; во время масштаба ладонями вращения нет
+  cupRotator = palms?.armed ? null : hands.filter((h) => h.cup).sort((p, q) => p.hs.cupOnT - q.hs.cupOnT)[0]?.id;
+  for (const h of hands) {
+    if (h.cup) {
+      if (h.id !== cupRotator) { cancelStroke(h.id); continue; }
+      busy = true;
+      if (h.cupLive) updatePointer(h.id, { x: h.wx, y: h.wy, angle: h.angle, rotate: true, lockAxis: true }, dt);
+      else view.held = true;                         // сбой формы: форма стоит, инерция не запускается
+      continue;
+    }
+    if (h.objLock) { cancelStroke(h.id); busy = true; continue; }   // только что был жест объекта: не лепим, курсор кисти не показываем
+    if (h.ui.over || h.hs.mode === 'none') { cancelStroke(h.id); continue; }
+    const sculpt = h.pinch && h.hs.mode === 'sculpt';
+    if (sculpt && !h.pinchLive) { busy = true; continue; }   // пальцы разжаты: лепка замирает сразу
+    const r = updatePointer(h.id, { x: h.x, y: h.y, active: sculpt, rotate: false, size: h.size }, dt);
+    if (sculpt) busy = true;
+    if (!shown && r) { placeCursor(r, sculpt); shown = true; }
+  }
+
+  if (mouse.inside) {
+    if (mouse.m) { const a = planePoint(mouse.px, mouse.py, mesh.position), b = planePoint(mouse.x, mouse.y, mesh.position);
+      if (a && b) mesh.position.add(b.sub(a)); mouse.px = mouse.x; mouse.py = mouse.y; busy = true; }
+    if (!mouse.l) mouse.mode = null; else if (!mouse.mode) mouse.mode = hitTest(mouse.x, mouse.y) ? 'sculpt' : 'grab';
+    const r = updatePointer('mouse', { x: mouse.x, y: mouse.y, active: mouse.l && mouse.mode === 'sculpt', rotate: mouse.r || (mouse.l && mouse.mode === 'grab'), rollOnly: mouse.r && mouse.shift, size: 0 }, dt);
+    if (mouse.l || mouse.r) busy = true;
+    if (!shown && r) { placeCursor(r, mouse.l); shown = true; }
+  } else cancelStroke('mouse');
+  if (!shown) cursor.visible = false;
+
+  if (S.autorot && !busy && !view.target) rotateScreen(dt * 0.4, 0);
+  stepView(dt);
+  drawOverlay();
+  renderer.render(scene, camera);
+  if (!manual) requestAnimationFrame(frame);
+}
+
+// ---------- actions ----------
+let toastTimer;
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1600); }
+function setStatus(live, text) { $('dot').classList.toggle('live', live); $('statusText').textContent = text; }
+function setTool(t) { S.tool = t; document.querySelectorAll('#tools button').forEach((b) => b.classList.toggle('on', b.dataset.tool === t)); }
+function setPaint(hex, switchTool = true) {
+  S.paintHex = hex; S.paint = new THREE.Color(hex);
+  document.querySelectorAll('#swatches button').forEach((b) => b.classList.toggle('on', b.dataset.color === hex));
+  $('customColor').value = hex;
+  if (switchTool) setTool('paint');
+}
+function fillAll() {
+  dropGrabs(); pushUndo();
+  for (let i = 0; i < mask.length; i++) { col[i*3] = S.paint.r; col[i*3+1] = S.paint.g; col[i*3+2] = S.paint.b; mask[i] = 1; }
+  geo.attributes.color.needsUpdate = true; toast('Залито целиком');
+}
+function unpaintAll() {
+  dropGrabs(); pushUndo();
+  for (let i = 0; i < mask.length; i++) { col[i*3] = baseColor.r; col[i*3+1] = baseColor.g; col[i*3+2] = baseColor.b; mask[i] = 0; }
+  geo.attributes.color.needsUpdate = true; toast('Краска снята');
+}
+function setRadius(r) { S.radius = THREE.MathUtils.clamp(r, 0.08, 0.9); $('radius').value = S.radius; $('radiusV').textContent = S.radius.toFixed(2); }
+function setSym(v) { S.sym = v; $('sym').classList.toggle('on', v); }
+function setShape(shape) {
+  dropGrabs();
+  S.shape = shape;
+  const g = shapePositions(shape);
+  if (g.attributes.position.count === pos.length / 3) {
+    pushUndo(); pos.set(g.attributes.position.array); g.dispose();
+    for (let i = 0; i < mask.length; i++) { col[i*3] = baseColor.r; col[i*3+1] = baseColor.g; col[i*3+2] = baseColor.b; mask[i] = 0; }
+    afterEdit();
+  } else setGeometry(g);
+  document.querySelectorAll('[data-shape]').forEach((b) => b.classList.toggle('on', b.dataset.shape === shape));
+  toast('Новая форма: ' + { sphere: 'сфера', cube: 'куб', cylinder: 'цилиндр' }[shape]);
+}
+function centerView() { setView('front'); mesh.position.set(0, 0, 0); mesh.scale.setScalar(1); toast('Вид по центру'); }
+function cycleMaterial() {
+  S.mat = (S.mat + 1) % MATS.length; mesh.material = MATS[S.mat].m; mesh.material.wireframe = S.wire;
+  // новый «родной» цвет ложится только на непрокрашенную часть каждой вершины
+  if (MATS[S.mat].base !== null) {
+    const nb = new THREE.Color(MATS[S.mat].base), dr = nb.r - baseColor.r, dg = nb.g - baseColor.g, db = nb.b - baseColor.b;
+    for (let i = 0; i < mask.length; i++) { const f = 1 - mask[i]; col[i*3] += dr * f; col[i*3+1] += dg * f; col[i*3+2] += db * f; }
+    baseColor = nb; geo.attributes.color.needsUpdate = true;
+  }
+  $('mat').firstChild.textContent = MATS[S.mat].name + ' ';
+}
+function toggleWire() { S.wire = !S.wire; MATS.forEach((m) => (m.m.wireframe = S.wire)); $('wire').classList.toggle('on', S.wire); }
+function toggleAutorot() { S.autorot = !S.autorot; $('autorot').classList.toggle('on', S.autorot); }
+function toggleBg() { $('bg').classList.toggle('on', document.body.classList.toggle('studio')); }
+function toggleHints() { $('hints').classList.toggle('on', document.body.classList.toggle('hints')); }
+function subdivide() {
+  const n = pos.length / 3;
+  if (n * 4 > MAX_VERTS) return toast('Уже максимальная детализация');
+  const idx = geo.index.array, P = Array.from(pos), C = Array.from(col), Mk = Array.from(mask), map = new Map(), F = [];
+  const mid = (a, b) => {
+    const k = a < b ? a * 1e6 + b : b * 1e6 + a; let m = map.get(k);
+    if (m === undefined) {
+      m = P.length / 3; P.push((P[a*3] + P[b*3]) / 2, (P[a*3+1] + P[b*3+1]) / 2, (P[a*3+2] + P[b*3+2]) / 2);
+      C.push((C[a*3] + C[b*3]) / 2, (C[a*3+1] + C[b*3+1]) / 2, (C[a*3+2] + C[b*3+2]) / 2); Mk.push((Mk[a] + Mk[b]) / 2);
+      map.set(k, m);
+    }
+    return m;
+  };
+  for (let i = 0; i < idx.length; i += 3) {
+    const a = idx[i], b = idx[i + 1], c = idx[i + 2], ab = mid(a, b), bc = mid(b, c), ca = mid(c, a);
+    F.push(a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  g.userData.mask = Float32Array.from(Mk);
+  g.setIndex(new THREE.Uint32BufferAttribute(F, 1));
+  g.computeVertexNormals();
+  setGeometry(g);
+  toast(`Детализация: ${(P.length / 3).toLocaleString('ru-RU')} вершин · отмена очищена`);
+}
+function download(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); }
+const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+function exportObj() {
+  const lines = ['# hand-sculpt export', 'o sculpt'];
+  // цвет вершины после координат (v x y z r g b, sRGB 0..1) — читают Blender, ZBrush, MeshLab
+  const tc = new THREE.Color();
+  for (let i = 0; i < pos.length; i += 3) {
+    tc.setRGB(col[i], col[i + 1], col[i + 2]).convertLinearToSRGB();
+    lines.push(`v ${pos[i].toFixed(5)} ${pos[i + 1].toFixed(5)} ${pos[i + 2].toFixed(5)} ${tc.r.toFixed(4)} ${tc.g.toFixed(4)} ${tc.b.toFixed(4)}`);
+  }
+  for (let i = 0; i < nrm.length; i += 3) lines.push(`vn ${nrm[i].toFixed(4)} ${nrm[i + 1].toFixed(4)} ${nrm[i + 2].toFixed(4)}`);
+  const idx = geo.index.array;
+  for (let i = 0; i < idx.length; i += 3) { const a = idx[i] + 1, b = idx[i + 1] + 1, c = idx[i + 2] + 1; lines.push(`f ${a}//${a} ${b}//${b} ${c}//${c}`); }
+  const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain' }));
+  download(url, `sculpt_${stamp()}.obj`); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('OBJ сохранён');
+}
+function savePng() {
+  const cv = cursor.visible; cursor.visible = false;
+  renderer.setClearColor(0x1b1d22, 1); renderer.render(scene, camera);
+  download(glCanvas.toDataURL('image/png'), `sculpt_${stamp()}.png`);
+  renderer.setClearColor(0x000000, 0); cursor.visible = cv;
+  toast('PNG сохранён');
+}
+
+// ---------- bindings ----------
+document.querySelectorAll('#tools button').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
+document.querySelectorAll('[data-shape]').forEach((b) => b.addEventListener('click', () => setShape(b.dataset.shape)));
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => { setView(b.dataset.view); toast('Ракурс: ' + VIEW_NAMES[b.dataset.view].toLowerCase()); }));
+$('radius').addEventListener('input', (e) => setRadius(+e.target.value));
+$('strength').addEventListener('input', (e) => { S.strength = +e.target.value; $('strengthV').textContent = S.strength.toFixed(2); });
+$('depth').addEventListener('input', (e) => { S.depthGain = +e.target.value; $('depthV').textContent = S.depthGain.toFixed(1); });
+const on = (id, fn) => $(id).addEventListener('click', fn);
+on('sym', () => setSym(!S.sym)); on('undo', undo); on('redo', redo); on('export', exportObj); on('png', savePng);
+on('mat', cycleMaterial); on('wire', toggleWire); on('autorot', toggleAutorot); on('center', centerView);
+on('detail', subdivide); on('bg', toggleBg); on('hints', toggleHints);
+on('fill', fillAll); on('unpaint', unpaintAll);
+for (const hex of PALETTE) {
+  const b = document.createElement('button');
+  b.dataset.hand = ''; b.dataset.color = hex; b.style.setProperty('--c', hex); b.title = hex;
+  b.addEventListener('click', () => setPaint(hex));
+  $('swatches').appendChild(b);
+}
+$('customColor').addEventListener('input', (e) => setPaint(e.target.value));
+
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const c = e.code;
+  const tools = { Digit1: 'grab', Digit2: 'push', Digit3: 'inflate', Digit4: 'smooth', Digit5: 'flatten', Digit6: 'crease', Digit7: 'paint' };
+  if (tools[c]) setTool(tools[c]);
+  else if (c === 'KeyZ') (e.shiftKey ? redo : undo)();
+  else if (c === 'KeyY') redo();
+  else if (c === 'KeyR') setShape(S.shape);
+  else if (c === 'KeyB') toggleBg();
+  else if (c === 'KeyE') exportObj();
+  else if (c === 'KeyP') savePng();
+  else if (c === 'KeyM') setSym(!S.sym);
+  else if (c === 'KeyG') cycleMaterial();
+  else if (c === 'KeyW') toggleWire();
+  else if (c === 'KeyT') toggleAutorot();
+  else if (c === 'KeyC') centerView();
+  else if (c === 'KeyD') subdivide();
+  else if (c === 'KeyH') toggleHints();
+  else if (c === 'KeyI') { S.debug = !S.debug; toast(S.debug ? 'Замеры руки: вкл' : 'Замеры руки: выкл'); }
+  else if (c === 'Tab') { e.preventDefault(); document.body.classList.toggle('hide-ui'); }
+  else if (c === 'KeyF') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  else if (c === 'BracketLeft') setRadius(S.radius * 0.9);
+  else if (c === 'BracketRight') setRadius(S.radius * 1.1);
+  else if (c === 'Numpad1') setView('front'); else if (c === 'Numpad3') setView('side');
+  else if (c === 'Numpad7') setView('top'); else if (c === 'Numpad9') setView('back');
+});
+
+resize(); bindGeometry(); updateHistory();
+setTool('grab'); setPaint(S.paintHex, false); setRadius(S.radius); setSym(true); $('hints').classList.add('on'); $('bg').classList.add('on');   // фон «студия» по умолчанию: камера — маленькое окно внизу
+document.querySelector('[data-shape="sphere"]').classList.add('on');
+$('strengthV').textContent = S.strength.toFixed(2); $('depthV').textContent = S.depthGain.toFixed(1);
+requestAnimationFrame(frame);
+startCamera();
+
+// test hook: simulated hands for checking without a camera
+window.__sculpt = { setHands: (list) => { for (const l of Object.keys(handState)) if (!list.some((h) => h.label === l)) { delete handState[l]; cancelStroke('hand-' + l); } hands = list.map((h) => ({ pts: Array(21).fill({ x: h.x, y: h.y }), fist: false, pinch: false, pointing: true, open: false, palmSize: 150, cup: false, cupArm: 0,
+  hs: handState[h.label] || (handState[h.label] = { mode: null, cupOnT: performance.now() }), id: 'hand-' + h.label, size: 100, ...h,
+  pinchLive: h.pinchLive ?? !!h.pinch, cupLive: h.cupLive ?? !!h.cup, wx: h.wx ?? h.x, wy: h.wy ?? h.y, angle: h.angle ?? -Math.PI / 2 })); },
+  mesh, S, get palms() { return palms; }, classifyHand, processHands, get handsRaw() { return hands; }, tick: (ms = 33) => { last = performance.now() - ms; frame(performance.now(), true); }, handState, get hands() { return hands; }, planePoint, camera, THREE, view, setView };
+</script>
+</body>
+</html>
